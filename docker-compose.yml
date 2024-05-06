@@ -1,0 +1,48 @@
+version: '3'
+
+volumes:
+  grafana-data:
+  prom-data:
+
+services:
+  backend:
+    image: backend:latest
+    build: ./app
+    container_name: backend
+    command: npm run start:dev
+    volumes:
+      - /app/node_modules
+      - ./app:/app/
+    ports:
+      - "4000:4000"
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: bitnami/prometheus:2.51.2
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prom-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+  
+  grafana:
+    image: grafana/grafana:10.4.2
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  # jmeter:
+  #   image: justb4/jmeter:latest
+  #   volumes:
+  #     - ./jmeter:/jmeter
+  #   command: -n -t /jmeter/load_test.jmx -l /jmeter/results.jtl

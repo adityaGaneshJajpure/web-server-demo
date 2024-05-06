@@ -1,7 +1,6 @@
 const os = require('os');
 
 const info = async (req, res) => {
-  console.log("request")
   const currentOS = {
     name: os.type(),
     release: os.release(),

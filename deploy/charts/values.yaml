@@ -1,0 +1,76 @@
+name: backend
+namespace: prod
+replicas: 2
+
+image:
+  repository: adityaganesh27/nodejs-demo
+  tag: latest
+  pullPolicy: IfNotPresent
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+
+configs:
+  PORT: '4000'
+
+resources:
+  limits:
+    cpu: 1024m
+    memory: 1024Mi
+  requests:
+    cpu: 512m
+    memory: 512Mi
+
+autoscaling:
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 300
+      selectPolicy: Min
+
+podAnnotations: {}
+
+service:
+  type: ClusterIP
+  port: 4000
+
+probes:
+  healthEndpoint: /api/v1/health
+  liveness:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+affinity:
+  podAntiAffinity:
+    topologyKey: kubernetes.io/hostname
+    weight: 100
+
+# ingress:
+#   enabled: false
+#   ingressClassName: kong
+#   pathType: Prefix
+#   host: backend.demo.com
+#   tls:
+#     certName: backend-prod-public-crt
+#   annotations:
+#     cert-manager.io/acme-challenge-type: http01
+#     cert-manager.io/cluster-issuer: letsencrypt
+#     kubernetes.io/tls-acme: 'true'

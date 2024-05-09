@@ -1,0 +1,39 @@
+{{- if .Values.autoscaling }}
+{{- if not .Values.autoscaling.kafka }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "app.name" . }}-hpa
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "app.name" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- if .Values.autoscaling.behavior}}
+  behavior:
+{{ toYaml .Values.autoscaling.behavior | indent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

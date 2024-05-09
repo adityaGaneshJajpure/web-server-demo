@@ -1,0 +1,101 @@
+{{- if not .Values.statefulset }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "app.name" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "app.selectorLabels" . | nindent 6 }}
+  replicas:  {{ .Values.replicas }}
+  strategy:
+{{ toYaml .Values.strategy | indent 4 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "app.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.affinity }}
+      affinity:
+        {{- if .Values.affinity.podAntiAffinity }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - {{ include "app.name" . }}
+              topologyKey:  {{ .Values.affinity.podAntiAffinity.topologyKey }}
+            weight: {{ .Values.affinity.podAntiAffinity.weight }}
+        {{- end }}
+        {{- if .Values.affinity.key }}
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: {{ .Values.affinity.key }}
+                operator: In
+                values:
+                - {{ .Values.affinity.value }}
+      tolerations:
+        - effect: NoSchedule
+          key: {{ .Values.affinity.key }}
+          operator: Equal
+          value: {{ .Values.affinity.value }}
+      {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.name }} 
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.workDir }}
+          workingDir: {{ .Values.workDir }}
+          {{- end }}
+          {{- if .Values.command }}
+          command:
+          {{- range .Values.command }}
+            - {{ . | quote }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.args }}
+          args:
+          {{- range .Values.args }}
+            - {{ . | quote }}
+          {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          envFrom:
+          - configMapRef:
+              name: {{ include "app.name" . }}-config
+          {{- if .Values.secrets }}
+          - secretRef:
+              name: {{ include "app.name" . }}-secret
+          {{- end }}
+          {{- if .Values.probes }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.healthEndpoint }}
+              port: {{ .Values.service.port }}
+{{ toYaml .Values.probes.liveness | indent 12 }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.healthEndpoint }}
+              port: {{ .Values.service.port }}
+{{ toYaml .Values.probes.readiness | indent 12 }}
+          {{- end }}    
+          {{- with .Values.resources }}
+          resources:
+{{ toYaml . | indent 12 }}
+          {{- end }}
+{{- end }}

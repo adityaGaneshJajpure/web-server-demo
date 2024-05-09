@@ -1,0 +1,4 @@
+apiVersion: v1
+name: backend-chart
+version: v1
+description: Chart containing deployment manifests

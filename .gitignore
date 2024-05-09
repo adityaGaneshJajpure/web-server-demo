@@ -65,4 +65,9 @@ typings/
 # dotenv environment variables file
 .env
 .env.test
+
 jmeter/results.jtl
+
+monitoring/grafana/*
+!monitoring/grafana/provisioning/
+!monitoring/grafana/dashboards/

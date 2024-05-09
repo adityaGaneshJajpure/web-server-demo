@@ -15,6 +15,11 @@ services:
       - ./app:/app/
     ports:
       - "4000:4000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:4000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     depends_on:
       - prometheus
 
@@ -41,8 +46,10 @@ services:
     depends_on:
       - prometheus
 
-  # jmeter:
-  #   image: justb4/jmeter:latest
-  #   volumes:
-  #     - ./jmeter:/jmeter
-  #   command: -n -t /jmeter/load_test.jmx -l /jmeter/results.jtl
+  jmeter:
+    image: justb4/jmeter:5.5
+    command: -n -t /jmeter/load_test.jmx -q /jmeter/jmeter.properties -l /jmeter/results.jtl -LDEBUG
+    volumes:
+      - ./jmeter:/jmeter
+    depends_on:
+      - backend

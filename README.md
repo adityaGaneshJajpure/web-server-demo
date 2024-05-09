@@ -71,6 +71,7 @@ Grafana should be up and running at `http://localhost:3000/`
 
 **Alert**
 - `HighLatency`: API latency is exceeding 150ms for more than 5 minutes.
+- `Up`: checks apis status - triggers alert if API is down in last 5 minutes.
 
 ### Load Testing
 
